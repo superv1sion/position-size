@@ -86,7 +86,7 @@ export default function Home() {
                         Position Size Calculator
                     </h1>
                     <p className="text-gray-600 dark:text-gray-300">
-                        Calculate optimal position size for futures trading
+                        Calculate position size for futures trading
                     </p>
                 </div>
 
