@@ -9,7 +9,10 @@ export default function Home() {
     const [stopLossPrice, setStopLossPrice] = useState('')
     const [positionType, setPositionType] = useState<'long' | 'short'>('long')
     const [positionSize, setPositionSize] = useState<number | null>(null)
+    const [maxLeverage, setMaxLeverage] = useState<number | null>(null)
     const [saveToLocalStorage, setSaveToLocalStorage] = useState(false)
+    const [marginRequirement, setMarginRequirement] = useState(0)
+    const [copyMessage, setCopyMessage] = useState('')
 
     // Load saved portfolio size and checkbox state from local storage on component mount
     useEffect(() => {
@@ -45,7 +48,7 @@ export default function Home() {
 
         if (portfolio && riskPercentage && entry && stopLoss) {
             const riskAmount = (portfolio * riskPercentage) / 100
-
+            setMarginRequirement(riskAmount)
             let riskPerUnit: number
             let validationMessage: string
 
@@ -60,6 +63,11 @@ export default function Home() {
             if (riskPerUnit > 0) {
                 const calculatedPositionSize = riskAmount / riskPerUnit
                 setPositionSize(calculatedPositionSize)
+
+                // Calculate maximum leverage for isolated position
+                // Leverage = Position Size / Risk Amount (margin required)
+                const calculatedMaxLeverage = Math.floor(calculatedPositionSize / riskAmount)
+                setMaxLeverage(calculatedMaxLeverage)
             } else {
                 alert(validationMessage)
             }
@@ -76,6 +84,29 @@ export default function Home() {
         setEntryPrice('')
         setStopLossPrice('')
         setPositionSize(null)
+        setMaxLeverage(null)
+    }
+
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text)
+            setCopyMessage('Copied!')
+
+            // Show visual indicator
+            const indicator = document.getElementById('copy-indicator')
+            if (indicator) {
+                indicator.style.opacity = '1'
+                setTimeout(() => {
+                    indicator.style.opacity = '0'
+                }, 1500)
+            }
+
+            setTimeout(() => setCopyMessage(''), 2000)
+        } catch (err) {
+            console.error('Failed to copy: ', err)
+            setCopyMessage('Copy failed')
+            setTimeout(() => setCopyMessage(''), 2000)
+        }
     }
 
     return (
@@ -96,28 +127,26 @@ export default function Home() {
                             Position Type
                         </label>
                         <div className="flex space-x-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name="positionType"
-                                    value="long"
-                                    checked={positionType === 'long'}
-                                    onChange={(e) => setPositionType(e.target.value as 'long' | 'short')}
-                                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="text-gray-700 dark:text-gray-300">Long</span>
-                            </label>
-                            <label className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name="positionType"
-                                    value="short"
-                                    checked={positionType === 'short'}
-                                    onChange={(e) => setPositionType(e.target.value as 'long' | 'short')}
-                                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="text-gray-700 dark:text-gray-300">Short</span>
-                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setPositionType('long')}
+                                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 transform hover:scale-105 ${positionType === 'long'
+                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg'
+                                    : 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-800/50 dark:text-green-300'
+                                    }`}
+                            >
+                                Long
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPositionType('short')}
+                                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 transform hover:scale-105 ${positionType === 'short'
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg'
+                                    : 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-300'
+                                    }`}
+                            >
+                                Short
+                            </button>
                         </div>
                     </div>
 
@@ -182,6 +211,11 @@ export default function Home() {
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                             placeholder="Enter stop loss price"
                         />
+                        {portfolioSize && percentageToRisk && (
+                            <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
+                                If price hits stop loss based on the above parameters, this would result in a ${((parseFloat(portfolioSize) * parseFloat(percentageToRisk)) / 100).toFixed(2)} loss.
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex space-x-4">
@@ -200,30 +234,60 @@ export default function Home() {
                     </div>
 
                     {positionSize !== null && (
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
-                                Position Size Result
-                            </h3>
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                ${positionSize.toFixed(2)}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                Position Size: <br />
+                                <span
+                                    className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-700/50 transition-all duration-200 select-none relative"
+                                    onClick={() => copyToClipboard(positionSize.toFixed(2))}
+                                    title="Click to copy number"
+                                >
+                                    ${positionSize.toFixed(2)}
+                                    <span className="absolute -top-1 -right-1 text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full opacity-0 transition-opacity duration-200" id="copy-indicator">
+                                        ✓
+                                    </span>
+                                </span>
                             </p>
-                            <p className="text-sm text-green-700 dark:text-green-300 mt-2">
+                            <br></br>
+                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                Margin Requirement: <br />
+                                <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
+                                    ${marginRequirement.toFixed(2)}
+                                </span>
+                            </p>
+                            <br></br>
+                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                Maximum Leverage: <br />
+                                <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
+                                    {maxLeverage}x
+                                </span>
+                            </p>
+
+                            <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
                                 This is the recommended position size based on your risk parameters.
                             </p>
+                            {copyMessage && (
+                                <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+                                    {copyMessage}
+                                </div>
+                            )}
                         </div>
                     )}
 
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                         <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                            Formula:
+                            Formulas:
                         </h4>
                         <p className="text-xs text-blue-700 dark:text-blue-300">
-                            {positionType === 'long'
-                                ? '(Portfolio Size × Risk %) ÷ (1 - Stop Loss ÷ Entry Price) = Position Size'
-                                : '(Portfolio Size × Risk %) ÷ (Stop Loss ÷ Entry Price - 1) = Position Size'
+                            <strong>Position Size:</strong> {positionType === 'long'
+                                ? '(Portfolio Size × Risk %) ÷ (1 - Stop Loss ÷ Entry Price)'
+                                : '(Portfolio Size × Risk %) ÷ (Stop Loss ÷ Entry Price - 1)'
                             }
                         </p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            <strong>Max Leverage:</strong> Position Size ÷ Risk Amount
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                             {positionType === 'long'
                                 ? 'For long positions: Stop Loss < Entry Price'
                                 : 'For short positions: Stop Loss > Entry Price'
