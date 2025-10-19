@@ -38,12 +38,6 @@ export default function Home() {
     }, [saveToLocalStorage])
 
     const calculatePositionSize = () => {
-        console.log('calculatePositionSize')
-        console.log('portfolioSize', portfolioSize)
-        console.log('percentageToRisk', percentageToRisk)
-        console.log('entryPrice', entryPrice)
-        console.log('stopLossPrice', stopLossPrice)
-        console.log('positionType', positionType)
         const portfolio = parseFloat(portfolioSize)
         const riskPercentage = parseFloat(percentageToRisk)
         const entry = parseFloat(entryPrice)
@@ -75,11 +69,12 @@ export default function Home() {
     }
 
     const resetForm = () => {
-        setPortfolioSize('')
+        if (!saveToLocalStorage) {
+            setPortfolioSize('')
+        }
         setPercentageToRisk('')
         setEntryPrice('')
         setStopLossPrice('')
-        setPositionType('long')
         setPositionSize(null)
     }
 
