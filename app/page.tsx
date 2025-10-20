@@ -48,7 +48,6 @@ export default function Home() {
 
         if (portfolio && riskPercentage && entry && stopLoss) {
             const riskAmount = (portfolio * riskPercentage) / 100
-            setMarginRequirement(riskAmount)
             let riskPerUnit: number
             let validationMessage: string
 
@@ -68,6 +67,8 @@ export default function Home() {
                 // Leverage = Position Size / Risk Amount (margin required)
                 const calculatedMaxLeverage = Math.floor(calculatedPositionSize / riskAmount)
                 setMaxLeverage(calculatedMaxLeverage)
+                setMarginRequirement(calculatedPositionSize / calculatedMaxLeverage)
+
             } else {
                 alert(validationMessage)
             }
