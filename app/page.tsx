@@ -26,6 +26,7 @@ export default function Home() {
     const [fixedRiskAmount, setFixedRiskAmount] = useState('')
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
+    const [isPWA, setIsPWA] = useState(false)
 
     // Format number with spaces every 3 digits
     const formatNumberWithSpaces = (value: string) => {
@@ -134,6 +135,7 @@ export default function Home() {
 
         // Check if app is already installed
         const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches;
+        setIsPWA(isAlreadyInstalled);
         if (isAlreadyInstalled) {
 
             setShowInstallButton(false);
@@ -408,26 +410,28 @@ The automatic install prompt may not appear in development mode.`);
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 relative">
-            {/* Refresh button in top-right corner */}
-            <button
-                onClick={() => window.location.reload()}
-                className="absolute top-4 right-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 z-10"
-                title="Refresh page"
-            >
-                <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            {/* Refresh button in top-right corner - only visible in PWA mode */}
+            {isPWA && (
+                <button
+                    onClick={() => window.location.reload()}
+                    className="absolute top-4 right-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 z-10"
+                    title="Refresh page"
                 >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                </svg>
-            </button>
+                    <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                    </svg>
+                </button>
+            )}
 
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
                 <div className="text-center mb-8">
