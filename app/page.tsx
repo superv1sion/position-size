@@ -17,6 +17,17 @@ export default function Home() {
     const [showInstallButton, setShowInstallButton] = useState(false)
     const [userEngaged, setUserEngaged] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
+    const [isPortfolioEditing, setIsPortfolioEditing] = useState(false)
+    const [isRiskPercentageEditing, setIsRiskPercentageEditing] = useState(false)
+    const [isEntryPriceEditing, setIsEntryPriceEditing] = useState(false)
+    const [isStopLossEditing, setIsStopLossEditing] = useState(false)
+
+    // Format number with spaces every 3 digits
+    const formatNumberWithSpaces = (value: string) => {
+        if (!value) return ''
+        const numericValue = value.replace(/\D/g, '') // Remove non-digits
+        return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    }
 
     // Load saved portfolio size and checkbox state from local storage on component mount
     useEffect(() => {
@@ -351,14 +362,40 @@ The automatic install prompt may not appear in development mode.`);
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Portfolio Size ($)
                         </label>
-                        <input
-                            type="number"
-                            value={portfolioSize}
-                            onChange={(e) => setPortfolioSize(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
-                            placeholder="Enter your portfolio size"
-                            inputMode="numeric"
-                        />
+                        {isPortfolioEditing ? (
+                            <input
+                                type="number"
+                                value={portfolioSize}
+                                onChange={(e) => setPortfolioSize(e.target.value)}
+                                onBlur={() => setIsPortfolioEditing(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsPortfolioEditing(false)
+                                    }
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                placeholder="Enter your portfolio size"
+                                inputMode="numeric"
+                                autoFocus
+                            />
+                        ) : (
+                            <div
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                onClick={() => setIsPortfolioEditing(true)}
+                            >
+                                <span className="text-gray-900 dark:text-white">
+                                    {portfolioSize ? `$${formatNumberWithSpaces(portfolioSize)}` : 'Enter portfolio size'}
+                                </span>
+                                <svg
+                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </div>
+                        )}
                         <div className="mt-2">
                             <label className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <input
@@ -376,42 +413,120 @@ The automatic install prompt may not appear in development mode.`);
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Risk Percentage (%)
                         </label>
-                        <input
-                            type="number"
-                            value={percentageToRisk}
-                            onChange={(e) => setPercentageToRisk(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
-                            placeholder="Enter risk percentage"
-                            inputMode="numeric"
-                        />
+                        {isRiskPercentageEditing ? (
+                            <input
+                                type="number"
+                                value={percentageToRisk}
+                                onChange={(e) => setPercentageToRisk(e.target.value)}
+                                onBlur={() => setIsRiskPercentageEditing(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsRiskPercentageEditing(false)
+                                    }
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                placeholder="Enter risk percentage"
+                                inputMode="numeric"
+                                autoFocus
+                            />
+                        ) : (
+                            <div
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                onClick={() => setIsRiskPercentageEditing(true)}
+                            >
+                                <span className="text-gray-900 dark:text-white">
+                                    {percentageToRisk ? `${percentageToRisk}%` : 'Enter risk percentage'}
+                                </span>
+                                <svg
+                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </div>
+                        )}
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Entry Price ($)
                         </label>
-                        <input
-                            type="number"
-                            value={entryPrice}
-                            onChange={(e) => setEntryPrice(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
-                            placeholder="Enter entry price"
-                            inputMode="numeric"
-                        />
+                        {isEntryPriceEditing ? (
+                            <input
+                                type="number"
+                                value={entryPrice}
+                                onChange={(e) => setEntryPrice(e.target.value)}
+                                onBlur={() => setIsEntryPriceEditing(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsEntryPriceEditing(false)
+                                    }
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                placeholder="Enter entry price"
+                                inputMode="numeric"
+                                autoFocus
+                            />
+                        ) : (
+                            <div
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                onClick={() => setIsEntryPriceEditing(true)}
+                            >
+                                <span className="text-gray-900 dark:text-white">
+                                    {entryPrice ? `$${formatNumberWithSpaces(entryPrice)}` : 'Enter entry price'}
+                                </span>
+                                <svg
+                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </div>
+                        )}
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Stop Loss Price ($)
                         </label>
-                        <input
-                            type="number"
-                            value={stopLossPrice}
-                            onChange={(e) => setStopLossPrice(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
-                            placeholder="Enter stop loss price"
-                            inputMode="numeric"
-                        />
+                        {isStopLossEditing ? (
+                            <input
+                                type="number"
+                                value={stopLossPrice}
+                                onChange={(e) => setStopLossPrice(e.target.value)}
+                                onBlur={() => setIsStopLossEditing(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsStopLossEditing(false)
+                                    }
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                placeholder="Enter stop loss price"
+                                inputMode="numeric"
+                                autoFocus
+                            />
+                        ) : (
+                            <div
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                onClick={() => setIsStopLossEditing(true)}
+                            >
+                                <span className="text-gray-900 dark:text-white">
+                                    {stopLossPrice ? `$${formatNumberWithSpaces(stopLossPrice)}` : 'Enter stop loss price'}
+                                </span>
+                                <svg
+                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </div>
+                        )}
                         {portfolioSize && percentageToRisk && (
                             <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
                                 If price hits stop loss based on the above parameters, this would result in a ${((parseFloat(portfolioSize) * parseFloat(percentageToRisk)) / 100).toFixed(2)} loss.
