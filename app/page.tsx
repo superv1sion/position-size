@@ -97,7 +97,7 @@ export default function Home() {
             // Show install button if:
             // 1. We have a deferred prompt, OR
             // 2. We meet PWA criteria and user has engaged with the site
-            if (deferredPrompt || (isSecure && hasServiceWorker && isNotStandalone && userEngaged)) {
+            if (deferredPrompt || (isSecure && hasServiceWorker && isNotStandalone)) {
                 setShowInstallButton(true);
             } else {
                 setShowInstallButton(false);
