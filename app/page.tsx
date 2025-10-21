@@ -16,6 +16,7 @@ export default function Home() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
     const [showInstallButton, setShowInstallButton] = useState(false)
     const [userEngaged, setUserEngaged] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
 
     // Load saved portfolio size and checkbox state from local storage on component mount
     useEffect(() => {
@@ -29,6 +30,16 @@ export default function Home() {
         if (savedCheckboxState === 'true') {
             setSaveToLocalStorage(true)
         }
+
+        // Detect mobile device
+        const checkMobile = () => {
+            const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+            setIsMobile(isMobileDevice || isTouchDevice)
+        }
+
+        checkMobile()
     }, [])
 
     // Save portfolio size to local storage when checkbox is checked and value changes
@@ -189,24 +200,73 @@ export default function Home() {
 
     const copyToClipboard = async (text: string) => {
         try {
-            await navigator.clipboard.writeText(text)
-            setCopyMessage('Copied!')
-
-            // Show visual indicator
-            const indicator = document.getElementById('copy-indicator')
-            if (indicator) {
-                indicator.style.opacity = '1'
-                setTimeout(() => {
-                    indicator.style.opacity = '0'
-                }, 1500)
+            // Try modern clipboard API first (works best on desktop and modern mobile browsers)
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text)
+                showCopySuccess()
+                return
             }
 
-            setTimeout(() => setCopyMessage(''), 2000)
+            // Fallback for mobile and older browsers
+            const textArea = document.createElement('textarea')
+            textArea.value = text
+            textArea.style.position = 'fixed'
+            textArea.style.left = '-999999px'
+            textArea.style.top = '-999999px'
+            textArea.style.opacity = '0'
+            textArea.setAttribute('readonly', '')
+            document.body.appendChild(textArea)
+
+            // For mobile devices, we need to handle selection differently
+            if (isMobile) {
+                textArea.style.position = 'absolute'
+                textArea.style.left = '50%'
+                textArea.style.top = '50%'
+                textArea.style.transform = 'translate(-50%, -50%)'
+                textArea.style.zIndex = '9999'
+                textArea.style.fontSize = '16px' // Prevents zoom on iOS
+            }
+
+            textArea.focus()
+            textArea.select()
+            textArea.setSelectionRange(0, 99999) // For mobile devices
+
+            try {
+                const successful = document.execCommand('copy')
+                if (successful) {
+                    showCopySuccess()
+                } else {
+                    throw new Error('execCommand failed')
+                }
+            } catch (err) {
+                throw new Error('execCommand failed')
+            } finally {
+                document.body.removeChild(textArea)
+            }
         } catch (err) {
             console.error('Failed to copy: ', err)
-            setCopyMessage('Copy failed')
-            setTimeout(() => setCopyMessage(''), 2000)
+            if (isMobile) {
+                setCopyMessage('Tap and hold the number to copy it manually')
+            } else {
+                setCopyMessage('Copy failed - try selecting the number manually')
+            }
+            setTimeout(() => setCopyMessage(''), 3000)
         }
+    }
+
+    const showCopySuccess = () => {
+        setCopyMessage('Copied!')
+
+        // Show visual indicator
+        const indicator = document.getElementById('copy-indicator')
+        if (indicator) {
+            indicator.style.opacity = '1'
+            setTimeout(() => {
+                indicator.style.opacity = '0'
+            }, 1500)
+        }
+
+        setTimeout(() => setCopyMessage(''), 2000)
     }
 
     const handleInstallClick = async () => {
@@ -379,9 +439,9 @@ The automatic install prompt may not appear in development mode.`);
                             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                 Position Size: <br />
                                 <span
-                                    className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-700/50 transition-all duration-200 select-none relative"
-                                    onClick={() => copyToClipboard(positionSize.toFixed(2))}
-                                    title="Click to copy number"
+                                    className={`text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-700/50 active:bg-blue-300 dark:active:bg-blue-600/50 transition-all duration-200 relative touch-manipulation ${isMobile ? 'select-text' : 'select-none'}`}
+                                    onClick={() => copyToClipboard(Math.floor(positionSize).toString())}
+                                    title={isMobile ? "Tap to copy or tap and hold to select" : "Click to copy number"}
                                 >
                                     ${positionSize.toFixed(2)}
                                     <span className="absolute -top-1 -right-1 text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full opacity-0 transition-opacity duration-200" id="copy-indicator">
@@ -406,6 +466,11 @@ The automatic install prompt may not appear in development mode.`);
 
                             <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
                                 This is the recommended position size based on your risk parameters.
+                                {isMobile && (
+                                    <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                        💡 Tip: Tap the number to copy, or tap and hold to select manually
+                                    </span>
+                                )}
                             </p>
                             {copyMessage && (
                                 <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
