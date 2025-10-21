@@ -589,11 +589,6 @@ The automatic install prompt may not appear in development mode.`);
 
                             <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
                                 This is the recommended position size based on your risk parameters.
-                                {isMobile && (
-                                    <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
-                                        💡 Tip: Tap the number to copy, or tap and hold to select manually
-                                    </span>
-                                )}
                             </p>
                             {copyMessage && (
                                 <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
