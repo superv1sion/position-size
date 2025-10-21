@@ -114,18 +114,35 @@ export default function Home() {
                     console.log('SW registered: ', registration);
                     setRegistration(registration);
 
-                    // Check for updates
+                    // Check for updates immediately and periodically
+                    const checkForUpdates = () => {
+                        registration.update();
+                    };
+
+                    // Check for updates on page load
+                    checkForUpdates();
+
+                    // Check for updates every 30 seconds
+                    const updateInterval = setInterval(checkForUpdates, 30000);
+
+                    // Listen for update found
                     registration.addEventListener('updatefound', () => {
+                        console.log('Update found!');
                         const newWorker = registration.installing;
                         if (newWorker) {
                             newWorker.addEventListener('statechange', () => {
+                                console.log('New worker state:', newWorker.state);
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content is available, show update notification
+                                    console.log('Update available!');
                                     setUpdateAvailable(true);
+                                    clearInterval(updateInterval);
                                 }
                             });
                         }
                     });
+
+                    // Clean up interval on unmount
+                    return () => clearInterval(updateInterval);
                 })
                 .catch((registrationError) => {
                     console.log('SW registration failed: ', registrationError);
@@ -446,7 +463,6 @@ The automatic install prompt may not appear in development mode.`);
                             </div>
                         </div>
                     )}
-
                 </div>
 
                 <div className="space-y-6">
