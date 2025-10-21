@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
+import { Analytics } from "@vercel/analytics/next"
 export default function Home() {
     const [portfolioSize, setPortfolioSize] = useState('')
     const [percentageToRisk, setPercentageToRisk] = useState('')
@@ -736,6 +736,7 @@ The automatic install prompt may not appear in development mode.`);
                     </div>
                 </div>
             </div>
+            <Analytics />
         </main>
     )
 }
