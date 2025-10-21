@@ -21,12 +21,50 @@ export default function Home() {
     const [isRiskPercentageEditing, setIsRiskPercentageEditing] = useState(false)
     const [isEntryPriceEditing, setIsEntryPriceEditing] = useState(false)
     const [isStopLossEditing, setIsStopLossEditing] = useState(false)
+    const [isFixedRiskEditing, setIsFixedRiskEditing] = useState(false)
+    const [riskInputType, setRiskInputType] = useState<'percentage' | 'fixed'>('percentage')
+    const [fixedRiskAmount, setFixedRiskAmount] = useState('')
 
     // Format number with spaces every 3 digits
     const formatNumberWithSpaces = (value: string) => {
         if (!value) return ''
         const numericValue = value.replace(/\D/g, '') // Remove non-digits
         return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    }
+
+    // Format price input with commas and proper decimal handling
+    const formatPriceInput = (value: string) => {
+        if (!value) return ''
+
+        // Remove all non-numeric characters except decimal point
+        let cleanValue = value.replace(/[^\d.]/g, '')
+
+        // Ensure only one decimal point
+        const decimalParts = cleanValue.split('.')
+        if (decimalParts.length > 2) {
+            cleanValue = decimalParts[0] + '.' + decimalParts.slice(1).join('')
+        }
+
+        // Split into integer and decimal parts
+        const [integerPart, decimalPart] = cleanValue.split('.')
+
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+        // Handle decimal part (limit to 2 digits)
+        let formattedDecimal = ''
+        if (decimalPart !== undefined) {
+            formattedDecimal = '.' + decimalPart.substring(0, 2)
+        }
+
+        return formattedInteger + formattedDecimal
+    }
+
+    // Parse formatted price string to number
+    const parseFormattedPrice = (value: string): number => {
+        if (!value) return 0
+        const cleanValue = value.replace(/,/g, '')
+        return parseFloat(cleanValue) || 0
     }
 
     // Load saved portfolio size and checkbox state from local storage on component mount
@@ -162,13 +200,29 @@ export default function Home() {
     }, [userEngaged])
 
     const calculatePositionSize = () => {
-        const portfolio = parseFloat(portfolioSize)
-        const riskPercentage = parseFloat(percentageToRisk)
-        const entry = parseFloat(entryPrice)
-        const stopLoss = parseFloat(stopLossPrice)
+        const portfolio = parseFormattedPrice(portfolioSize)
+        const entry = parseFormattedPrice(entryPrice)
+        const stopLoss = parseFormattedPrice(stopLossPrice)
 
-        if (portfolio && riskPercentage && entry && stopLoss) {
-            const riskAmount = (portfolio * riskPercentage) / 100
+        // Calculate risk amount based on input type
+        let riskAmount: number
+        if (riskInputType === 'percentage') {
+            const riskPercentage = parseFloat(percentageToRisk)
+            if (!portfolio || !riskPercentage) {
+                alert('Please fill in portfolio size and risk percentage')
+                return
+            }
+            riskAmount = (portfolio * riskPercentage) / 100
+        } else {
+            const fixedAmount = parseFloat(fixedRiskAmount)
+            if (!fixedAmount) {
+                alert('Please enter a fixed risk amount')
+                return
+            }
+            riskAmount = fixedAmount
+        }
+
+        if (portfolio && riskAmount && entry && stopLoss) {
             let riskPerUnit: number
             let validationMessage: string
 
@@ -203,10 +257,13 @@ export default function Home() {
             setPortfolioSize('')
         }
         setPercentageToRisk('')
+        setFixedRiskAmount('')
         setEntryPrice('')
         setStopLossPrice('')
         setPositionSize(null)
         setMaxLeverage(null)
+        setIsFixedRiskEditing(false)
+        setIsRiskPercentageEditing(false)
     }
 
     const copyToClipboard = async (text: string) => {
@@ -364,9 +421,9 @@ The automatic install prompt may not appear in development mode.`);
                         </label>
                         {isPortfolioEditing ? (
                             <input
-                                type="number"
+                                type="text"
                                 value={portfolioSize}
-                                onChange={(e) => setPortfolioSize(e.target.value)}
+                                onChange={(e) => setPortfolioSize(formatPriceInput(e.target.value))}
                                 onBlur={() => setIsPortfolioEditing(false)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -375,7 +432,7 @@ The automatic install prompt may not appear in development mode.`);
                                 }}
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                                 placeholder="Enter your portfolio size"
-                                inputMode="numeric"
+                                inputMode="decimal"
                                 autoFocus
                             />
                         ) : (
@@ -384,7 +441,7 @@ The automatic install prompt may not appear in development mode.`);
                                 onClick={() => setIsPortfolioEditing(true)}
                             >
                                 <span className="text-gray-900 dark:text-white">
-                                    {portfolioSize ? `$${formatNumberWithSpaces(portfolioSize)}` : 'Enter portfolio size'}
+                                    {portfolioSize ? `$${portfolioSize}` : 'Enter portfolio size'}
                                 </span>
                                 <svg
                                     className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -410,42 +467,98 @@ The automatic install prompt may not appear in development mode.`);
                     </div>
 
                     <div>
-                        <label className="block text-lg font-bold  text-gray-700 dark:text-gray-300 mb-2">
-                            Risk Percentage (%)
-                        </label>
-                        {isRiskPercentageEditing ? (
-                            <input
-                                type="number"
-                                value={percentageToRisk}
-                                onChange={(e) => setPercentageToRisk(e.target.value)}
-                                onBlur={() => setIsRiskPercentageEditing(false)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        setIsRiskPercentageEditing(false)
-                                    }
-                                }}
-                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
-                                placeholder="Enter risk percentage"
-                                inputMode="numeric"
-                                autoFocus
-                            />
-                        ) : (
-                            <div
-                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
-                                onClick={() => setIsRiskPercentageEditing(true)}
+                        <div className="flex space-x-4 mb-2">
+                            <button
+                                type="button"
+                                onClick={() => setRiskInputType('percentage')}
+                                className={`flex-1 py-2 px-4 rounded-lg font-semibold transition duration-200 transform hover:scale-105 ${riskInputType === 'percentage'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+                                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300'
+                                    }`}
                             >
-                                <span className="text-gray-900 dark:text-gray-300">
-                                    {percentageToRisk ? `${percentageToRisk}%` : 'Enter risk percentage'}
-                                </span>
-                                <svg
-                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                                Percentage (%)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRiskInputType('fixed')}
+                                className={`flex-1 py-2 px-4 rounded-lg font-semibold transition duration-200 transform hover:scale-105 ${riskInputType === 'fixed'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+                                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300'
+                                    }`}
+                            >
+                                Fixed Amount ($)
+                            </button>
+                        </div>
+                        {riskInputType === 'percentage' ? (
+                            isRiskPercentageEditing ? (
+                                <input
+                                    type="number"
+                                    value={percentageToRisk}
+                                    onChange={(e) => setPercentageToRisk(e.target.value)}
+                                    onBlur={() => setIsRiskPercentageEditing(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setIsRiskPercentageEditing(false)
+                                        }
+                                    }}
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                    placeholder="Enter risk percentage"
+                                    inputMode="numeric"
+                                    autoFocus
+                                />
+                            ) : (
+                                <div
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                    onClick={() => setIsRiskPercentageEditing(true)}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </div>
+                                    <span className="text-gray-900 dark:text-gray-300">
+                                        {percentageToRisk ? `${percentageToRisk}%` : 'Enter risk percentage'}
+                                    </span>
+                                    <svg
+                                        className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                            )
+                        ) : (
+                            isFixedRiskEditing ? (
+                                <input
+                                    type="text"
+                                    value={fixedRiskAmount}
+                                    onChange={(e) => setFixedRiskAmount(formatPriceInput(e.target.value))}
+                                    onBlur={() => setIsFixedRiskEditing(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setIsFixedRiskEditing(false)
+                                        }
+                                    }}
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                    placeholder="Enter fixed risk amount"
+                                    inputMode="decimal"
+                                    autoFocus
+                                />
+                            ) : (
+                                <div
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                    onClick={() => setIsFixedRiskEditing(true)}
+                                >
+                                    <span className="text-gray-900 dark:text-gray-300">
+                                        {fixedRiskAmount ? `$${fixedRiskAmount}` : 'Enter fixed risk amount'}
+                                    </span>
+                                    <svg
+                                        className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                            )
                         )}
                     </div>
 
@@ -455,9 +568,9 @@ The automatic install prompt may not appear in development mode.`);
                         </label>
                         {isEntryPriceEditing ? (
                             <input
-                                type="number"
+                                type="text"
                                 value={entryPrice}
-                                onChange={(e) => setEntryPrice(e.target.value)}
+                                onChange={(e) => setEntryPrice(formatPriceInput(e.target.value))}
                                 onBlur={() => setIsEntryPriceEditing(false)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -466,7 +579,7 @@ The automatic install prompt may not appear in development mode.`);
                                 }}
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                                 placeholder="Enter entry price"
-                                inputMode="numeric"
+                                inputMode="decimal"
                                 autoFocus
                             />
                         ) : (
@@ -475,7 +588,7 @@ The automatic install prompt may not appear in development mode.`);
                                 onClick={() => setIsEntryPriceEditing(true)}
                             >
                                 <span className="text-gray-900 dark:text-gray-300">
-                                    {entryPrice ? `$${formatNumberWithSpaces(entryPrice)}` : 'Enter entry price'}
+                                    {entryPrice ? `$${entryPrice}` : 'Enter entry price'}
                                 </span>
                                 <svg
                                     className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -495,9 +608,9 @@ The automatic install prompt may not appear in development mode.`);
                         </label>
                         {isStopLossEditing ? (
                             <input
-                                type="number"
+                                type="text"
                                 value={stopLossPrice}
-                                onChange={(e) => setStopLossPrice(e.target.value)}
+                                onChange={(e) => setStopLossPrice(formatPriceInput(e.target.value))}
                                 onBlur={() => setIsStopLossEditing(false)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -506,7 +619,7 @@ The automatic install prompt may not appear in development mode.`);
                                 }}
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                                 placeholder="Enter stop loss price"
-                                inputMode="numeric"
+                                inputMode="decimal"
                                 autoFocus
                             />
                         ) : (
@@ -515,7 +628,7 @@ The automatic install prompt may not appear in development mode.`);
                                 onClick={() => setIsStopLossEditing(true)}
                             >
                                 <span className="text-gray-900 dark:text-gray-300">
-                                    {stopLossPrice ? `$${formatNumberWithSpaces(stopLossPrice)}` : 'Enter stop loss price'}
+                                    {stopLossPrice ? `$${stopLossPrice}` : 'Enter stop loss price'}
                                 </span>
                                 <svg
                                     className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -527,9 +640,12 @@ The automatic install prompt may not appear in development mode.`);
                                 </svg>
                             </div>
                         )}
-                        {portfolioSize && percentageToRisk && (
+                        {portfolioSize && ((riskInputType === 'percentage' && percentageToRisk) || (riskInputType === 'fixed' && fixedRiskAmount)) && (
                             <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
-                                If price hits stop loss based on the above parameters, this would result in a ${((parseFloat(portfolioSize) * parseFloat(percentageToRisk)) / 100).toFixed(2)} loss.
+                                If price hits stop loss based on the above parameters, this would result in a ${riskInputType === 'percentage'
+                                    ? ((parseFormattedPrice(portfolioSize) * parseFloat(percentageToRisk)) / 100).toFixed(2)
+                                    : parseFloat(fixedRiskAmount).toFixed(2)
+                                } loss.
                             </p>
                         )}
                     </div>
@@ -574,7 +690,7 @@ The automatic install prompt may not appear in development mode.`);
                             </p>
                             <br></br>
                             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                Margin Requirement: <br />
+                                Recommended Margin: <br />
                                 <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
                                     ${marginRequirement.toFixed(2)}
                                 </span>
