@@ -468,7 +468,7 @@ The automatic install prompt may not appear in development mode.`);
                 <div className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Position Type
+                            Position Side
                         </label>
                         <div className="flex space-x-4">
                             <button
