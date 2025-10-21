@@ -24,6 +24,8 @@ export default function Home() {
     const [isFixedRiskEditing, setIsFixedRiskEditing] = useState(false)
     const [riskInputType, setRiskInputType] = useState<'percentage' | 'fixed'>('percentage')
     const [fixedRiskAmount, setFixedRiskAmount] = useState('')
+    const [updateAvailable, setUpdateAvailable] = useState(false)
+    const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
 
     // Format number with spaces every 3 digits
     const formatNumberWithSpaces = (value: string) => {
@@ -110,6 +112,20 @@ export default function Home() {
             navigator.serviceWorker.register('/sw.js')
                 .then((registration) => {
                     console.log('SW registered: ', registration);
+                    setRegistration(registration);
+
+                    // Check for updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New content is available, show update notification
+                                    setUpdateAvailable(true);
+                                }
+                            });
+                        }
+                    });
                 })
                 .catch((registrationError) => {
                     console.log('SW registration failed: ', registrationError);
@@ -365,6 +381,31 @@ The automatic install prompt may not appear in development mode.`);
         }
     }
 
+    const handleUpdateClick = () => {
+        if (registration && registration.waiting) {
+            // Tell the waiting service worker to skip waiting and become active
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            setUpdateAvailable(false);
+            // Reload the page to get the new version
+            (window as any).location.reload();
+        }
+    }
+
+    const handleForceRefresh = () => {
+        // Clear all caches and reload
+        if ('caches' in window) {
+            caches.keys().then((cacheNames) => {
+                cacheNames.forEach((cacheName) => {
+                    caches.delete(cacheName);
+                });
+            }).then(() => {
+                (window as any).location.reload();
+            });
+        } else {
+            (window as any).location.reload();
+        }
+    }
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
@@ -382,6 +423,28 @@ The automatic install prompt may not appear in development mode.`);
                         >
                             📱 Save as App
                         </button>
+                    )}
+
+                    {updateAvailable && (
+                        <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg">
+                            <p className="text-yellow-800 dark:text-yellow-200 text-sm font-medium mb-2">
+                                🔄 Update Available
+                            </p>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={handleUpdateClick}
+                                    className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1.5 px-3 rounded text-xs transition duration-200"
+                                >
+                                    Update Now
+                                </button>
+                                <button
+                                    onClick={handleForceRefresh}
+                                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1.5 px-3 rounded text-xs transition duration-200"
+                                >
+                                    Force Refresh
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                 </div>
