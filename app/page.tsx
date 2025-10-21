@@ -13,6 +13,9 @@ export default function Home() {
     const [saveToLocalStorage, setSaveToLocalStorage] = useState(false)
     const [marginRequirement, setMarginRequirement] = useState(0)
     const [copyMessage, setCopyMessage] = useState('')
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+    const [showInstallButton, setShowInstallButton] = useState(false)
+    const [userEngaged, setUserEngaged] = useState(false)
 
     // Load saved portfolio size and checkbox state from local storage on component mount
     useEffect(() => {
@@ -39,6 +42,102 @@ export default function Home() {
     useEffect(() => {
         localStorage.setItem('saveToLocalStorage', saveToLocalStorage.toString())
     }, [saveToLocalStorage])
+
+    // PWA functionality
+    useEffect(() => {
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    console.log('SW registered: ', registration);
+                })
+                .catch((registrationError) => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+        }
+
+        // Check if app is already installed
+        const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches;
+        if (isAlreadyInstalled) {
+            console.log('App is already installed');
+            setShowInstallButton(false);
+            return;
+        }
+
+        // Handle install prompt
+        const handleBeforeInstallPrompt = (e: any) => {
+            console.log('beforeinstallprompt event fired!');
+            e.preventDefault();
+            setDeferredPrompt(e);
+            setShowInstallButton(true);
+        };
+
+        // Check if app was installed
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            setShowInstallButton(false);
+        });
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        // Smart install button logic
+        const checkInstallability = () => {
+            const isSecure = location.protocol === 'https:' || location.hostname === 'localhost';
+            const hasServiceWorker = 'serviceWorker' in navigator;
+            const isNotStandalone = !window.matchMedia('(display-mode: standalone)').matches;
+
+            console.log('Checking installability:', {
+                isSecure,
+                hasServiceWorker,
+                isNotStandalone,
+                userEngaged,
+                hasDeferredPrompt: !!deferredPrompt
+            });
+
+            // Show install button if:
+            // 1. We have a deferred prompt, OR
+            // 2. We meet PWA criteria and user has engaged with the site
+            if (deferredPrompt || (isSecure && hasServiceWorker && isNotStandalone && userEngaged)) {
+                setShowInstallButton(true);
+            } else {
+                setShowInstallButton(false);
+            }
+        };
+
+        // Check immediately
+        checkInstallability();
+
+        // Check again after user interaction (engagement)
+        const handleUserInteraction = () => {
+            setUserEngaged(true);
+            checkInstallability();
+            // Remove listener after first interaction
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+        };
+
+        document.addEventListener('click', handleUserInteraction);
+        document.addEventListener('keydown', handleUserInteraction);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+        };
+    }, [deferredPrompt])
+
+    // Re-check installability when user engagement changes
+    useEffect(() => {
+        if (userEngaged) {
+            const isSecure = location.protocol === 'https:' || location.hostname === 'localhost';
+            const hasServiceWorker = 'serviceWorker' in navigator;
+            const isNotStandalone = !window.matchMedia('(display-mode: standalone)').matches;
+
+            if (isSecure && hasServiceWorker && isNotStandalone) {
+                setShowInstallButton(true);
+            }
+        }
+    }, [userEngaged])
 
     const calculatePositionSize = () => {
         const portfolio = parseFloat(portfolioSize)
@@ -110,6 +209,34 @@ export default function Home() {
         }
     }
 
+    const handleInstallClick = async () => {
+        console.log('Install button clicked');
+        console.log('deferredPrompt:', deferredPrompt);
+
+        if (deferredPrompt) {
+            console.log('Showing install prompt...');
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            setDeferredPrompt(null);
+            setShowInstallButton(false);
+        } else {
+            console.log('No deferred prompt available');
+            // Show instructions for manual installation
+            alert(`Install instructions:
+            
+📱 On Mobile:
+• Android Chrome: Tap menu (⋮) → "Add to Home screen"
+• iOS Safari: Tap share button → "Add to Home Screen"
+
+💻 On Desktop:
+• Look for install icon in address bar
+• Or use browser menu → "Install app"
+
+The automatic install prompt may not appear in development mode.`);
+        }
+    }
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
@@ -120,6 +247,15 @@ export default function Home() {
                     <p className="text-gray-600 dark:text-gray-300">
                         Calculate position size for futures trading
                     </p>
+                    {showInstallButton && (
+                        <button
+                            onClick={handleInstallClick}
+                            className="mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105 text-sm"
+                        >
+                            📱 Install App
+                        </button>
+                    )}
+
                 </div>
 
                 <div className="space-y-6">
@@ -159,8 +295,9 @@ export default function Home() {
                             type="number"
                             value={portfolioSize}
                             onChange={(e) => setPortfolioSize(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                             placeholder="Enter your portfolio size"
+                            inputMode="numeric"
                         />
                         <div className="mt-2">
                             <label className="flex items-center text-sm text-gray-600 dark:text-gray-400">
@@ -183,8 +320,9 @@ export default function Home() {
                             type="number"
                             value={percentageToRisk}
                             onChange={(e) => setPercentageToRisk(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                             placeholder="Enter risk percentage"
+                            inputMode="numeric"
                         />
                     </div>
 
@@ -196,8 +334,9 @@ export default function Home() {
                             type="number"
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                             placeholder="Enter entry price"
+                            inputMode="numeric"
                         />
                     </div>
 
@@ -209,8 +348,9 @@ export default function Home() {
                             type="number"
                             value={stopLossPrice}
                             onChange={(e) => setStopLossPrice(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                             placeholder="Enter stop loss price"
+                            inputMode="numeric"
                         />
                         {portfolioSize && percentageToRisk && (
                             <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
