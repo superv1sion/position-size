@@ -252,7 +252,7 @@ The automatic install prompt may not appear in development mode.`);
                             onClick={handleInstallClick}
                             className="mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105 text-sm"
                         >
-                            📱 Install App
+                            📱 Save as App
                         </button>
                     )}
 
