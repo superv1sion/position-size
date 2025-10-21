@@ -59,14 +59,14 @@ export default function Home() {
         // Check if app is already installed
         const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches;
         if (isAlreadyInstalled) {
-            console.log('App is already installed');
+
             setShowInstallButton(false);
             return;
         }
 
         // Handle install prompt
         const handleBeforeInstallPrompt = (e: any) => {
-            console.log('beforeinstallprompt event fired!');
+
             e.preventDefault();
             setDeferredPrompt(e);
             setShowInstallButton(true);
@@ -74,7 +74,7 @@ export default function Home() {
 
         // Check if app was installed
         window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
+
             setShowInstallButton(false);
         });
 
