@@ -870,16 +870,19 @@ The automatic install prompt may not appear in development mode.`);
                             <br></br>
                             {riskRewardRatio !== null && (
                                 <>
-                                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                    <p className={`text-2xl font-bold ${riskRewardRatio < 1 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                         Risk/Reward Ratio: <br />
-                                        <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
+                                        <span className={`text-3xl font-extrabold px-3 py-1 rounded-lg ${riskRewardRatio < 1
+                                            ? 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800/30'
+                                            : 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30'
+                                            }`}>
                                             1:{riskRewardRatio.toFixed(2)}
                                         </span>
                                     </p>
                                     <br></br>
                                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                                         Potential Profit: <br />
-                                        <span className="text-3xl font-extrabold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/30 px-3 py-1 rounded-lg">
+                                        <span className={`text-3xl font-extrabold px-3 py-1 rounded-lg text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/30`}>
                                             ${potentialProfit?.toFixed(2)}
                                         </span>
                                     </p>
