@@ -801,7 +801,7 @@ The automatic install prompt may not appear in development mode.`);
                                 onClick={() => setIsTakeProfitEditing(true)}
                             >
                                 <span className="text-gray-900 dark:text-gray-300">
-                                    {takeProfitPrice ? `$${takeProfitPrice}` : 'Enter take profit price (optional)'}
+                                    {takeProfitPrice ? `$${takeProfitPrice}` : 'Enter take profit price'}
                                 </span>
                                 <svg
                                     className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
