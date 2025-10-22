@@ -24,6 +24,10 @@ export default function Home() {
     const [isFixedRiskEditing, setIsFixedRiskEditing] = useState(false)
     const [riskInputType, setRiskInputType] = useState<'percentage' | 'fixed'>('percentage')
     const [fixedRiskAmount, setFixedRiskAmount] = useState('')
+    const [takeProfitPrice, setTakeProfitPrice] = useState('')
+    const [isTakeProfitEditing, setIsTakeProfitEditing] = useState(false)
+    const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null)
+    const [potentialProfit, setPotentialProfit] = useState<number | null>(null)
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
     const [isPWA, setIsPWA] = useState(false)
@@ -221,6 +225,7 @@ export default function Home() {
         const portfolio = parseFormattedPrice(portfolioSize)
         const entry = parseFormattedPrice(entryPrice)
         const stopLoss = parseFormattedPrice(stopLossPrice)
+        const takeProfit = parseFormattedPrice(takeProfitPrice)
 
         // Calculate risk amount based on input type
         let riskAmount: number
@@ -262,6 +267,34 @@ export default function Home() {
                 setMaxLeverage(calculatedMaxLeverage)
                 setMarginRequirement(calculatedPositionSize / calculatedMaxLeverage)
 
+                // Calculate risk/reward ratio and potential profit if take profit is provided
+                if (takeProfit > 0) {
+                    let rewardPerUnit: number
+                    let takeProfitValidationMessage: string
+
+                    if (positionType === 'long') {
+                        rewardPerUnit = (takeProfit / entry) - 1
+                        takeProfitValidationMessage = 'Take profit price must be higher than entry price for long positions'
+                    } else {
+                        rewardPerUnit = 1 - (takeProfit / entry)
+                        takeProfitValidationMessage = 'Take profit price must be lower than entry price for short positions'
+                    }
+
+                    if (rewardPerUnit > 0) {
+                        const calculatedRiskRewardRatio = rewardPerUnit / riskPerUnit
+                        const calculatedPotentialProfit = calculatedPositionSize * rewardPerUnit
+                        setRiskRewardRatio(calculatedRiskRewardRatio)
+                        setPotentialProfit(calculatedPotentialProfit)
+                    } else {
+                        alert(takeProfitValidationMessage)
+                        setRiskRewardRatio(null)
+                        setPotentialProfit(null)
+                    }
+                } else {
+                    setRiskRewardRatio(null)
+                    setPotentialProfit(null)
+                }
+
             } else {
                 alert(validationMessage)
             }
@@ -278,10 +311,14 @@ export default function Home() {
         setFixedRiskAmount('')
         setEntryPrice('')
         setStopLossPrice('')
+        setTakeProfitPrice('')
         setPositionSize(null)
         setMaxLeverage(null)
+        setRiskRewardRatio(null)
+        setPotentialProfit(null)
         setIsFixedRiskEditing(false)
         setIsRiskPercentageEditing(false)
+        setIsTakeProfitEditing(false)
     }
 
     const copyToClipboard = async (text: string) => {
@@ -591,7 +628,7 @@ The automatic install prompt may not appear in development mode.`);
                                     }}
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
                                     placeholder="Enter risk percentage"
-                                    inputMode="numeric"
+                                    inputMode="decimal"
                                     autoFocus
                                 />
                             ) : (
@@ -738,6 +775,46 @@ The automatic install prompt may not appear in development mode.`);
                         )}
                     </div>
 
+                    <div>
+                        <label className="block text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Take Profit Target ($) <span className="text-sm font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
+                        </label>
+                        {isTakeProfitEditing ? (
+                            <input
+                                type="text"
+                                value={takeProfitPrice}
+                                onChange={(e) => setTakeProfitPrice(formatPriceInput(e.target.value))}
+                                onBlur={() => setIsTakeProfitEditing(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsTakeProfitEditing(false)
+                                    }
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                placeholder="Enter take profit price"
+                                inputMode="decimal"
+                                autoFocus
+                            />
+                        ) : (
+                            <div
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                onClick={() => setIsTakeProfitEditing(true)}
+                            >
+                                <span className="text-gray-900 dark:text-gray-300">
+                                    {takeProfitPrice ? `$${takeProfitPrice}` : 'Enter take profit price (optional)'}
+                                </span>
+                                <svg
+                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex space-x-4">
                         <button
                             onClick={calculatePositionSize}
@@ -790,10 +867,25 @@ The automatic install prompt may not appear in development mode.`);
                                     {maxLeverage}x
                                 </span>
                             </p>
+                            <br></br>
+                            {riskRewardRatio !== null && (
+                                <>
+                                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                        Risk/Reward Ratio: <br />
+                                        <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
+                                            1:{riskRewardRatio.toFixed(2)}
+                                        </span>
+                                    </p>
+                                    <br></br>
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                        Potential Profit: <br />
+                                        <span className="text-3xl font-extrabold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/30 px-3 py-1 rounded-lg">
+                                            ${potentialProfit?.toFixed(2)}
+                                        </span>
+                                    </p>
+                                </>
+                            )}
 
-                            <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
-                                This is the recommended position size based on your risk parameters.
-                            </p>
                             {copyMessage && (
                                 <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
                                     {copyMessage}
@@ -815,10 +907,22 @@ The automatic install prompt may not appear in development mode.`);
                         <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                             <strong>Max Leverage:</strong> Position Size ÷ Risk Amount
                         </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            <strong>Risk/Reward Ratio:</strong> {positionType === 'long'
+                                ? '(Take Profit ÷ Entry Price - 1) ÷ (1 - Stop Loss ÷ Entry Price)'
+                                : '(1 - Take Profit ÷ Entry Price) ÷ (Stop Loss ÷ Entry Price - 1)'
+                            }
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            <strong>Potential Profit:</strong> Position Size × {positionType === 'long'
+                                ? '(Take Profit ÷ Entry Price - 1)'
+                                : '(1 - Take Profit ÷ Entry Price)'
+                            }
+                        </p>
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                             {positionType === 'long'
-                                ? 'For long positions: Stop Loss < Entry Price'
-                                : 'For short positions: Stop Loss > Entry Price'
+                                ? 'For long positions: Stop Loss < Entry Price < Take Profit'
+                                : 'For short positions: Take Profit < Entry Price < Stop Loss'
                             }
                         </p>
                     </div>
