@@ -26,8 +26,12 @@ export default function Home() {
     const [fixedRiskAmount, setFixedRiskAmount] = useState('')
     const [takeProfitPrice, setTakeProfitPrice] = useState('')
     const [isTakeProfitEditing, setIsTakeProfitEditing] = useState(false)
+    const [takeProfitInputType, setTakeProfitInputType] = useState<'price' | 'riskReward'>('price')
+    const [riskRewardRatioInput, setRiskRewardRatioInput] = useState('')
+    const [isRiskRewardEditing, setIsRiskRewardEditing] = useState(false)
     const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null)
     const [potentialProfit, setPotentialProfit] = useState<number | null>(null)
+    const [calculatedTakeProfitPrice, setCalculatedTakeProfitPrice] = useState<number | null>(null)
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
     const [isPWA, setIsPWA] = useState(false)
@@ -225,7 +229,30 @@ export default function Home() {
         const portfolio = parseFormattedPrice(portfolioSize)
         const entry = parseFormattedPrice(entryPrice)
         const stopLoss = parseFormattedPrice(stopLossPrice)
-        const takeProfit = parseFormattedPrice(takeProfitPrice)
+
+        // Calculate take profit based on input type
+        let takeProfit: number
+        if (takeProfitInputType === 'price') {
+            takeProfit = parseFormattedPrice(takeProfitPrice)
+            setCalculatedTakeProfitPrice(null) // Clear calculated price when using manual price
+        } else {
+            // Calculate take profit from risk/reward ratio
+            const riskRewardRatio = parseFloat(riskRewardRatioInput)
+            if (!riskRewardRatio || riskRewardRatio <= 0) {
+                alert('Please enter a valid risk/reward ratio')
+                return
+            }
+
+            // Calculate take profit price based on risk/reward ratio
+            if (positionType === 'long') {
+                // For long: Take Profit = Entry + (Entry - Stop Loss) * Risk/Reward Ratio
+                takeProfit = entry + (entry - stopLoss) * riskRewardRatio
+            } else {
+                // For short: Take Profit = Entry - (Stop Loss - Entry) * Risk/Reward Ratio
+                takeProfit = entry - (stopLoss - entry) * riskRewardRatio
+            }
+            setCalculatedTakeProfitPrice(takeProfit) // Store the calculated price
+        }
 
         // Calculate risk amount based on input type
         let riskAmount: number
@@ -312,13 +339,16 @@ export default function Home() {
         setEntryPrice('')
         setStopLossPrice('')
         setTakeProfitPrice('')
+        setRiskRewardRatioInput('')
         setPositionSize(null)
         setMaxLeverage(null)
         setRiskRewardRatio(null)
         setPotentialProfit(null)
+        setCalculatedTakeProfitPrice(null)
         setIsFixedRiskEditing(false)
         setIsRiskPercentageEditing(false)
         setIsTakeProfitEditing(false)
+        setIsRiskRewardEditing(false)
     }
 
     const copyToClipboard = async (text: string) => {
@@ -777,41 +807,103 @@ The automatic install prompt may not appear in development mode.`);
 
                     <div>
                         <label className="block text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
-                            Take Profit Target ($) <span className="text-sm font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
+                            Take Profit Target <span className="text-sm font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
                         </label>
-                        {isTakeProfitEditing ? (
-                            <input
-                                type="text"
-                                value={takeProfitPrice}
-                                onChange={(e) => setTakeProfitPrice(formatPriceInput(e.target.value))}
-                                onBlur={() => setIsTakeProfitEditing(false)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        setIsTakeProfitEditing(false)
-                                    }
-                                }}
-                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
-                                placeholder="Enter take profit price"
-                                inputMode="decimal"
-                                autoFocus
-                            />
-                        ) : (
-                            <div
-                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
-                                onClick={() => setIsTakeProfitEditing(true)}
+                        <div className="flex space-x-4 mb-2">
+                            <button
+                                type="button"
+                                onClick={() => setTakeProfitInputType('price')}
+                                className={`flex-1 py-2 px-4 rounded-lg font-semibold transition duration-200 transform hover:scale-105 ${takeProfitInputType === 'price'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+                                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300'
+                                    }`}
                             >
-                                <span className="text-gray-900 dark:text-gray-300">
-                                    {takeProfitPrice ? `$${takeProfitPrice}` : 'Enter take profit price'}
-                                </span>
-                                <svg
-                                    className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                                Price ($)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTakeProfitInputType('riskReward')}
+                                className={`flex-1 py-2 px-4 rounded-lg font-semibold transition duration-200 transform hover:scale-105 ${takeProfitInputType === 'riskReward'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+                                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300'
+                                    }`}
+                            >
+                                Risk/Reward
+                            </button>
+                        </div>
+                        {takeProfitInputType === 'price' ? (
+                            isTakeProfitEditing ? (
+                                <input
+                                    type="text"
+                                    value={takeProfitPrice}
+                                    onChange={(e) => setTakeProfitPrice(formatPriceInput(e.target.value))}
+                                    onBlur={() => setIsTakeProfitEditing(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setIsTakeProfitEditing(false)
+                                        }
+                                    }}
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                    placeholder="Enter take profit price"
+                                    inputMode="decimal"
+                                    autoFocus
+                                />
+                            ) : (
+                                <div
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                    onClick={() => setIsTakeProfitEditing(true)}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </div>
+                                    <span className="text-gray-900 dark:text-gray-300">
+                                        {takeProfitPrice ? `$${takeProfitPrice}` : 'Enter take profit price'}
+                                    </span>
+                                    <svg
+                                        className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                            )
+                        ) : (
+                            isRiskRewardEditing ? (
+                                <div className="flex items-center">
+                                    <span className="text-lg font-medium text-gray-700 dark:text-gray-300 mr-2">1:</span>
+                                    <input
+                                        type="number"
+                                        value={riskRewardRatioInput}
+                                        onChange={(e) => setRiskRewardRatioInput(e.target.value)}
+                                        onBlur={() => setIsRiskRewardEditing(false)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                setIsRiskRewardEditing(false)
+                                            }
+                                        }}
+                                        className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-lg"
+                                        placeholder="Enter risk/reward ratio"
+                                        inputMode="decimal"
+                                        autoFocus
+                                    />
+                                </div>
+                            ) : (
+                                <div
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
+                                    onClick={() => setIsRiskRewardEditing(true)}
+                                >
+                                    <span className="text-gray-900 dark:text-gray-300">
+                                        {riskRewardRatioInput ? `1:${riskRewardRatioInput}` : 'Enter risk/reward ratio'}
+                                    </span>
+                                    <svg
+                                        className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                            )
                         )}
                     </div>
 
@@ -868,7 +960,24 @@ The automatic install prompt may not appear in development mode.`);
                                 </span>
                             </p>
                             <br></br>
-                            {riskRewardRatio !== null && (
+                            {calculatedTakeProfitPrice !== null && (
+                                <>
+                                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                        Take Profit Price: <br />
+                                        <span className="text-3xl font-extrabold px-3 py-1 rounded-lg text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30">
+                                            ${calculatedTakeProfitPrice.toFixed(2)}
+                                        </span>
+                                    </p>
+                                    <br></br>
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                        Potential Profit: <br />
+                                        <span className={`text-3xl font-extrabold px-3 py-1 rounded-lg text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/30`}>
+                                            ${potentialProfit?.toFixed(2)}
+                                        </span>
+                                    </p>
+                                </>
+                            )}
+                            {riskRewardRatio !== null && calculatedTakeProfitPrice === null && (
                                 <>
                                     <p className={`text-2xl font-bold ${riskRewardRatio < 1 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                         Risk/Reward Ratio: <br />
