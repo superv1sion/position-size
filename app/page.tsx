@@ -62,10 +62,10 @@ export default function Home() {
         // Add commas to integer part
         const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
-        // Handle decimal part (limit to 2 digits)
+        // Handle decimal part (limit to 5 digits)
         let formattedDecimal = ''
         if (decimalPart !== undefined) {
-            formattedDecimal = '.' + decimalPart.substring(0, 2)
+            formattedDecimal = '.' + decimalPart.substring(0, 5)
         }
 
         return formattedInteger + formattedDecimal
