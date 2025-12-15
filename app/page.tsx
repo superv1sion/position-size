@@ -31,6 +31,7 @@ export default function Home() {
     const [isRiskRewardEditing, setIsRiskRewardEditing] = useState(false)
     const [riskRewardRatio, setRiskRewardRatio] = useState<number | null>(null)
     const [potentialProfit, setPotentialProfit] = useState<number | null>(null)
+    const [potentialLoss, setPotentialLoss] = useState<number | null>(null)
     const [calculatedTakeProfitPrice, setCalculatedTakeProfitPrice] = useState<number | null>(null)
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
@@ -77,6 +78,20 @@ export default function Home() {
         const cleanValue = value.replace(/,/g, '')
         return parseFloat(cleanValue) || 0
     }
+
+    // Suggested leverage sits slightly below the hard max to give a safer band
+    const suggestedLeverageRange = maxLeverage !== null ? {
+        min: Math.max(1, Math.round(maxLeverage * 0.85)),
+        max: Math.max(1, Math.round(maxLeverage * 0.95)),
+    } : null
+
+    const portfolioValue = parseFormattedPrice(portfolioSize)
+    const potentialProfitPercentage = portfolioValue > 0 && potentialProfit !== null
+        ? `${potentialProfit >= 0 ? '+' : ''}${((potentialProfit / portfolioValue) * 100).toFixed(2)}%`
+        : null
+    const potentialLossPercentage = portfolioValue > 0 && potentialLoss !== null
+        ? `-${((potentialLoss / portfolioValue) * 100).toFixed(2)}%`
+        : null
 
     // Load saved portfolio size and checkbox state from local storage on component mount
     useEffect(() => {
@@ -287,6 +302,7 @@ export default function Home() {
             if (riskPerUnit > 0) {
                 const calculatedPositionSize = riskAmount / riskPerUnit
                 setPositionSize(calculatedPositionSize)
+                setPotentialLoss(riskAmount)
 
                 // Calculate maximum leverage for isolated position
                 // Leverage = Position Size / Risk Amount (margin required)
@@ -323,9 +339,11 @@ export default function Home() {
                 }
 
             } else {
+                setPotentialLoss(null)
                 alert(validationMessage)
             }
         } else {
+            setPotentialLoss(null)
             alert('Please fill in all fields')
         }
     }
@@ -344,6 +362,7 @@ export default function Home() {
         setMaxLeverage(null)
         setRiskRewardRatio(null)
         setPotentialProfit(null)
+        setPotentialLoss(null)
         setCalculatedTakeProfitPrice(null)
         setIsFixedRiskEditing(false)
         setIsRiskPercentageEditing(false)
@@ -947,16 +966,9 @@ The automatic install prompt may not appear in development mode.`);
                             </p>
                             <br></br>
                             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                Recommended Margin: <br />
+                                Suggested Leverage: <br />
                                 <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
-                                    ${marginRequirement.toFixed(2)}
-                                </span>
-                            </p>
-                            <br></br>
-                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                Maximum Leverage: <br />
-                                <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/30 px-3 py-1 rounded-lg">
-                                    {maxLeverage}x
+                                    {suggestedLeverageRange ? `${suggestedLeverageRange.min}x - ${suggestedLeverageRange.max}x` : '—'}
                                 </span>
                             </p>
                             <br></br>
@@ -969,10 +981,31 @@ The automatic install prompt may not appear in development mode.`);
                                         </span>
                                     </p>
                                     <br></br>
+                                    {potentialLoss !== null && (
+                                        <>
+                                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                                                Potential Loss: <br />
+                                                <span className="text-3xl font-extrabold px-3 py-1 rounded-lg text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800/30">
+                                                    ${potentialLoss.toFixed(2)}
+                                                    {potentialLossPercentage && (
+                                                        <span className="text-xl font-semibold ml-2 text-red-700 dark:text-red-200">
+                                                            ({potentialLossPercentage})
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </p>
+                                            <br></br>
+                                        </>
+                                    )}
                                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                                         Potential Profit: <br />
                                         <span className={`text-3xl font-extrabold px-3 py-1 rounded-lg text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/30`}>
                                             ${potentialProfit?.toFixed(2)}
+                                            {potentialProfitPercentage && (
+                                                <span className="text-xl font-semibold ml-2 text-green-700 dark:text-green-200">
+                                                    ({potentialProfitPercentage})
+                                                </span>
+                                            )}
                                         </span>
                                     </p>
                                 </>
@@ -989,10 +1022,31 @@ The automatic install prompt may not appear in development mode.`);
                                         </span>
                                     </p>
                                     <br></br>
+                                    {potentialLoss !== null && (
+                                        <>
+                                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                                                Potential Loss: <br />
+                                                <span className="text-3xl font-extrabold px-3 py-1 rounded-lg text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800/30">
+                                                    ${potentialLoss.toFixed(2)}
+                                                    {potentialLossPercentage && (
+                                                        <span className="text-xl font-semibold ml-2 text-red-700 dark:text-red-200">
+                                                            ({potentialLossPercentage})
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </p>
+                                            <br></br>
+                                        </>
+                                    )}
                                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                                         Potential Profit: <br />
                                         <span className={`text-3xl font-extrabold px-3 py-1 rounded-lg text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/30`}>
                                             ${potentialProfit?.toFixed(2)}
+                                            {potentialProfitPercentage && (
+                                                <span className="text-xl font-semibold ml-2 text-green-700 dark:text-green-200">
+                                                    ({potentialProfitPercentage})
+                                                </span>
+                                            )}
                                         </span>
                                     </p>
                                 </>
