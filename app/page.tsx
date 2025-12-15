@@ -11,7 +11,6 @@ export default function Home() {
     const [positionSize, setPositionSize] = useState<number | null>(null)
     const [maxLeverage, setMaxLeverage] = useState<number | null>(null)
     const [saveToLocalStorage, setSaveToLocalStorage] = useState(false)
-    const [marginRequirement, setMarginRequirement] = useState(0)
     const [copyMessage, setCopyMessage] = useState('')
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
     const [showInstallButton, setShowInstallButton] = useState(false)
@@ -308,7 +307,7 @@ export default function Home() {
                 // Leverage = Position Size / Risk Amount (margin required)
                 const calculatedMaxLeverage = Math.floor(calculatedPositionSize / riskAmount)
                 setMaxLeverage(calculatedMaxLeverage)
-                setMarginRequirement(calculatedPositionSize / calculatedMaxLeverage)
+
 
                 // Calculate risk/reward ratio and potential profit if take profit is provided
                 if (takeProfit > 0) {
@@ -613,6 +612,8 @@ The automatic install prompt may not appear in development mode.`);
                             <div
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                 onClick={() => setIsPortfolioEditing(true)}
+                                onFocus={() => setIsPortfolioEditing(true)}
+                                tabIndex={0}
                             >
                                 <span className="text-gray-900 dark:text-white">
                                     {portfolioSize ? `$${portfolioSize}` : 'Enter portfolio size'}
@@ -684,6 +685,8 @@ The automatic install prompt may not appear in development mode.`);
                                 <div
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                     onClick={() => setIsRiskPercentageEditing(true)}
+                                    onFocus={() => setIsRiskPercentageEditing(true)}
+                                    tabIndex={0}
                                 >
                                     <span className="text-gray-900 dark:text-gray-300">
                                         {percentageToRisk ? `${percentageToRisk}%` : 'Enter risk percentage'}
@@ -719,6 +722,8 @@ The automatic install prompt may not appear in development mode.`);
                                 <div
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                     onClick={() => setIsFixedRiskEditing(true)}
+                                    onFocus={() => setIsFixedRiskEditing(true)}
+                                    tabIndex={0}
                                 >
                                     <span className="text-gray-900 dark:text-gray-300">
                                         {fixedRiskAmount ? `$${fixedRiskAmount}` : 'Enter fixed risk amount'}
@@ -760,6 +765,8 @@ The automatic install prompt may not appear in development mode.`);
                             <div
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                 onClick={() => setIsEntryPriceEditing(true)}
+                                onFocus={() => setIsEntryPriceEditing(true)}
+                                tabIndex={0}
                             >
                                 <span className="text-gray-900 dark:text-gray-300">
                                     {entryPrice ? `$${entryPrice}` : 'Enter entry price'}
@@ -800,6 +807,8 @@ The automatic install prompt may not appear in development mode.`);
                             <div
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                 onClick={() => setIsStopLossEditing(true)}
+                                onFocus={() => setIsStopLossEditing(true)}
+                                tabIndex={0}
                             >
                                 <span className="text-gray-900 dark:text-gray-300">
                                     {stopLossPrice ? `$${stopLossPrice}` : 'Enter stop loss price'}
@@ -871,6 +880,8 @@ The automatic install prompt may not appear in development mode.`);
                                 <div
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                     onClick={() => setIsTakeProfitEditing(true)}
+                                    onFocus={() => setIsTakeProfitEditing(true)}
+                                    tabIndex={0}
                                 >
                                     <span className="text-gray-900 dark:text-gray-300">
                                         {takeProfitPrice ? `$${takeProfitPrice}` : 'Enter take profit price'}
@@ -909,6 +920,8 @@ The automatic install prompt may not appear in development mode.`);
                                 <div
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                                     onClick={() => setIsRiskRewardEditing(true)}
+                                    onFocus={() => setIsRiskRewardEditing(true)}
+                                    tabIndex={0}
                                 >
                                     <span className="text-gray-900 dark:text-gray-300">
                                         {riskRewardRatioInput ? `1:${riskRewardRatioInput}` : 'Enter risk/reward ratio'}
